@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 转换工具 - 专业版</title>
+    
+    <!-- 基础库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #f9fafb;
+        }
+
+        /* 响应式容器布局 */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: row; /* 默认横向 */
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column; /* 手机端纵向堆叠 */
+            }
+            #editor, #preview {
+                width: 100% !important;
+                height: 50% !important;
+            }
+            #editor {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+        }
+
+        #editor {
+            font-family: 'Fira Code', monospace;
+            resize: none;
+            outline: none;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            line-height: 1.6;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        #preview {
+            background-color: white;
+            color: #333;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* 预览区列表样式增强 */
+        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #preview li { margin-bottom: 0.5rem; }
+        
+        /* 预览区分割线样式 */
+        #preview hr { border: 0; border-top: 2px solid #eaeaea; margin: 2rem 0; }
+
+        /* 预览区表格样式 */
+        #preview table { border-collapse: collapse; width: 100%; margin: 1em 0; overflow-x: auto; display: block; }
+        #preview th, #preview td { border: 1px solid #e5e7eb; padding: 8px 12px; min-width: 80px; }
+        #preview th { background: #f9fafb; }
+
+        /* 右键菜单样式 */
+        #context-menu {
+            position: fixed;
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid #ddd;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            z-index: 1000;
+            min-width: 180px;
+            overflow: hidden;
+        }
+
+        #context-menu button {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #context-menu button:last-child { border-bottom: none; }
+        #context-menu button:active { background: #e5e7eb; }
+
+        /* Debug 弹窗响应式 */
+        #debug-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            background: white;
+            z-index: 2000;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            flex-direction: column;
+        }
+
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1999;
+            backdrop-filter: blur(2px);
+        }
+
+        /* 按钮与交互优化 */
+        .btn { 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            touch-action: manipulation;
+        }
+        .btn:active { transform: scale(0.92); opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <header class="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex flex-row justify-between items-center z-10 shadow-sm">
+        <div class="flex flex-col overflow-hidden">
+            <h1 class="text-lg md:text-xl font-bold text-gray-800 truncate">Markdown 转换专家</h1>
+            <p class="hidden md:block text-xs text-gray-500">支持实时预览与原生公式 Docx 导出</p>
+        </div>
+        <div class="flex space-x-2">
+            <button onclick="exportDocx()" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
+                <!-- iOS 风格分享图标 (Square with Arrow Up) -->
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                    <polyline points="16 6 12 2 8 6"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+                <span class="hidden sm:inline">导出 Docx</span>
+                <span class="inline sm:hidden">导出</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="editor-container">
+        <textarea id="editor" class="w-1/2 h-full border-r" placeholder="在此输入 Markdown 内容..."></textarea>
+        <div id="preview" class="w-1/2 h-full prose prose-sm md:prose-base max-w-none"></div>
+    </main>
+
+    <!-- 右键菜单 -->
+    <div id="context-menu">
+        <button onclick="debugSelection()">🔍 Debug 选中内容</button>
+        <button onclick="copyRaw()">📋 复制原文</button>
+    </div>
+
+    <!-- Debug 弹窗 -->
+    <div id="modal-overlay" onclick="closeModal()"></div>
+    <div id="debug-modal" class="p-4 md:p-6 overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="font-bold text-lg text-gray-800">解析调试器</h3>
+            <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600">✕</button>
+        </div>
+        <div class="flex-1 overflow-auto space-y-4">
+            <div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">原始 Markdown</span>
+                <pre id="debug-raw" class="mt-1 bg-gray-900 text-green-400 p-4 rounded-xl text-xs md:text-sm whitespace-pre-wrap font-mono border border-gray-700"></pre>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">解析后 HTML</span>
+                <pre id="debug-html" class="mt-1 bg-gray-100 p-4 rounded-xl text-xs md:text-sm whitespace-pre-wrap text-blue-700 border border-gray-200 font-mono"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const contextMenu = document.getElementById('context-menu');
+        const debugModal = document.getElementById('debug-modal');
+        const modalOverlay = document.getElementById('modal-overlay');
+
+        let isSyncingEditor = false;
+        let isSyncingPreview = false;
+        let markdownBlocks = [];
+
+        function getFileName(extension) {
+            const lines = editor.value.split('\n');
+            let firstLine = '';
+            for(let line of lines) {
+                if(line.trim()) { firstLine = line; break; }
+            }
+            if (!firstLine) return `document.${extension}`;
+            
+            // 去除 Markdown 标记符号
+            const cleanLine = firstLine.replace(/[#*`>]/g, '').trim();
+            
+            // 匹配第一个中英文标点符号：包括 , . ! ? : ; ( ) [ ] { } 及中文对应的符号
+            const punctuationRegex = /[，。！？：；（）【】《》、,.!?:;()\[\]{}]/;
+            const match = cleanLine.match(punctuationRegex);
+            
+            let fileName = '';
+            if (match) {
+                fileName = cleanLine.substring(0, match.index).trim();
+            }
+            
+            // 如果标点符号前没文字，或者没匹配到标点，回退到原有截断逻辑
+            if (!fileName) {
+                fileName = cleanLine.substring(0, 20) || 'document';
+            }
+            
+            return `${fileName}.${extension}`;
+        }
+
+        function decodeHTMLEntities(text) {
+            const entities = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
+            return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;/g, m => entities[m]);
+        }
+
+        function renderMath(text) {
+            text = text.replace(/\$\$([\s\S]+?)\$\$/g, (m, f) => {
+                const clean = decodeHTMLEntities(f);
+                try {
+                    const rendered = katex.renderToString(clean, { displayMode: true, throwOnError: false });
+                    return `<div class="math-block my-4 overflow-x-auto" data-latex="${clean}" data-display="true">${rendered}</div>`;
+                } catch(e) { return m; }
+            });
+            text = text.replace(/\$([^\$\n]+?)\$/g, (m, f) => {
+                const clean = decodeHTMLEntities(f);
+                try {
+                    const rendered = katex.renderToString(clean, { displayMode: false, throwOnError: false });
+                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span>`;
+                } catch(e) { return m; }
+            });
+            return text;
+        }
+
+        function preprocessMarkdown(text) {
+            let processed = text.replace(/　/g, ' ');
+            processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
+            processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
+            processed = processed.replace(/([^\n])\n([-]{3,})(\s|$)/g, '$1\n\n$2$3');
+            return processed;
+        }
+
+        editor.addEventListener('input', () => {
+            const val = editor.value;
+            markdownBlocks = val.split(/\n\n+/);
+            const cleanMarkdown = preprocessMarkdown(val);
+            const html = marked.parse(cleanMarkdown);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = renderMath(html);
+            
+            Array.from(tempDiv.children).forEach((child, index) => {
+                child.setAttribute('data-index', index);
+            });
+            
+            preview.innerHTML = tempDiv.innerHTML;
+        });
+
+        // 仅在桌面端开启同步滚动
+        const isMobile = () => window.innerWidth <= 768;
+
+        editor.addEventListener('scroll', () => {
+            if (!isSyncingEditor && !isMobile()) {
+                isSyncingPreview = true;
+                const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+                preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+                setTimeout(() => isSyncingPreview = false, 50);
+            }
+        });
+
+        preview.addEventListener('scroll', () => {
+            if (!isSyncingPreview && !isMobile()) {
+                isSyncingEditor = true;
+                const percentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+                editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+                setTimeout(() => isSyncingEditor = false, 50);
+            }
+        });
+
+        let lastSelectedHTML = '';
+        let lastSelectedRaw = '';
+
+        const handleContextMenu = (e, isFromEditor) => {
+            let selectedText = "";
+            if (isFromEditor) {
+                selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+                if (selectedText.trim()) {
+                    lastSelectedRaw = selectedText;
+                    lastSelectedHTML = marked.parse(preprocessMarkdown(selectedText));
+                }
+            } else {
+                const selection = window.getSelection();
+                selectedText = selection.toString();
+                const container = selection.anchorNode?.parentElement?.closest('[data-index]');
+                if (container) {
+                    const idx = parseInt(container.getAttribute('data-index'));
+                    lastSelectedHTML = container.outerHTML;
+                    lastSelectedRaw = markdownBlocks[idx] || "未找到源码段落";
+                } else if (selectedText.trim()) {
+                    lastSelectedRaw = "选中的纯文本: " + selectedText;
+                    lastSelectedHTML = selection.anchorNode?.parentElement?.innerHTML || "";
+                }
+            }
+
+            if (selectedText.trim()) {
+                e.preventDefault();
+                contextMenu.style.display = 'block';
+                
+                // 确保菜单不超出屏幕右侧
+                let x = e.pageX;
+                if (x + 180 > window.innerWidth) x = window.innerWidth - 190;
+                
+                contextMenu.style.left = x + 'px';
+                contextMenu.style.top = e.pageY + 'px';
+            }
+        };
+
+        editor.addEventListener('contextmenu', (e) => handleContextMenu(e, true));
+        preview.addEventListener('contextmenu', (e) => handleContextMenu(e, false));
+        document.addEventListener('click', () => contextMenu.style.display = 'none');
+
+        // 移动端长按模拟右键（可选增强）
+        let touchTimer;
+        const touchDuration = 600;
+        const handleTouchStart = (e, isFromEditor) => {
+            touchTimer = setTimeout(() => handleContextMenu(e.touches[0], isFromEditor), touchDuration);
+        };
+        const handleTouchEnd = () => clearTimeout(touchTimer);
+        
+        editor.addEventListener('touchstart', (e) => handleTouchStart(e, true), {passive: true});
+        editor.addEventListener('touchend', handleTouchEnd);
+        preview.addEventListener('touchstart', (e) => handleTouchStart(e, false), {passive: true});
+        preview.addEventListener('touchend', handleTouchEnd);
+
+        function debugSelection() {
+            document.getElementById('debug-raw').textContent = lastSelectedRaw;
+            document.getElementById('debug-html').textContent = lastSelectedHTML;
+            debugModal.style.display = 'flex';
+            modalOverlay.style.display = 'block';
+        }
+
+        function closeModal() {
+            debugModal.style.display = 'none';
+            modalOverlay.style.display = 'none';
+        }
+
+        function copyRaw() {
+            if (lastSelectedRaw) {
+                const input = document.createElement('textarea');
+                input.value = lastSelectedRaw;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+            }
+        }
+
+        function exportDocx() {
+            if (!editor.value) return;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = preview.innerHTML;
+
+            tempDiv.querySelectorAll('[data-latex]').forEach(el => {
+                const latex = el.getAttribute('data-latex');
+                const isDisplay = el.getAttribute('data-display') === 'true';
+                try {
+                    const mathml = katex.renderToString(latex, { displayMode: isDisplay, output: 'mathml' });
+                    const wrapper = document.createElement('span');
+                    wrapper.innerHTML = mathml;
+                    el.parentNode.replaceChild(wrapper, el);
+                } catch (err) { console.error(err); }
+            });
+
+            const content = tempDiv.innerHTML;
+            const converted = htmlDocx.asBlob(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        body { font-family: 'Arial', sans-serif; line-height: 1.6; }
+                        table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+                        th, td { border: 1pt solid #cccccc; padding: 6pt; text-align: left; }
+                        th { background-color: #f2f2f2; font-weight: bold; }
+                        hr { border: 0; border-top: 1pt solid #eeeeee; margin: 15pt 0; }
+                        ul, ol { margin-left: 20pt; }
+                        h1 { font-size: 22pt; margin-bottom: 15pt; }
+                        h2 { font-size: 18pt; margin-top: 20pt; }
+                        h3 { font-size: 14pt; margin-top: 15pt; }
+                        p { margin-bottom: 10pt; }
+                    </style>
+                </head>
+                <body>${content}</body>
+                </html>
+            `);
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(converted);
+            link.download = getFileName('docx');
+            link.click();
+        }
+
+        // 初始化
+        editor.value = `# 🚀 欢迎使用 Markdown 转换专家 Pro
+
+本工具已全面适配移动端。在手机上，编辑器与预览区将自动切换为上下堆叠布局，方便随时记录灵感。
+
+---
+
+### 🎨 响应式优化说明
+1. **触控支持**：优化了导出按钮的点击面积，并支持长按唤起调试菜单。
+2. **布局切换**：当屏幕宽度小于 768px 时，布局由横向转为纵向。
+3. **表格适配**：表格支持横向滑动，不会挤压页面。
+
+### 📝 结构化内容演示
+
+#### 1. 多级列表与层级结构
+* **移动端特性**
+    1. 支持手势滚动。
+    2. 文字大小自动调整，确保可读性。
+
+#### 2. 数学公式引擎
+这里是一个关于正态分布的概率密度函数公式：
+$$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}} $$
+
+> 尝试在手机上点击右上角的分享图标进行导出。`;
+        editor.dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
