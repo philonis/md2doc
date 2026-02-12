@@ -1,5 +1,3 @@
 name = "md2doc"
 compatibility_date = "2026-02-12"
-assets = {
-  directory = "./dist"
-}
+assets = { directory = "./“ }
