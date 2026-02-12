@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown 转换工具 </title>
+    <title>Markdown 转换工具 - 专业版</title>
     
     <!-- 基础库 -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +13,10 @@
     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
     <!-- 引入 html2canvas 库 -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- 引入 html2pdf 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- 引入 docx-preview 库用于DOCX转PDF -->
+    <script src="https://unpkg.com/docx-preview@0.1.15/dist/docx-preview.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;600&display=swap');
@@ -159,7 +163,7 @@
     <header class="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex flex-row justify-between items-center z-10 shadow-sm">
         <div class="flex flex-col overflow-hidden">
             <h1 class="text-lg md:text-xl font-bold text-gray-800 truncate">Markdown 转换专家</h1>
-            <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx 与长图导出</p>
+            <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx、长图与 PDF 导出</p>
         </div>
         <div class="flex space-x-2">
             <button onclick="exportLongImage()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
@@ -170,6 +174,17 @@
                 </svg>
                 <span class="hidden sm:inline">导出长图</span>
                 <span class="inline sm:hidden">长图</span>
+            </button>
+            <button onclick="exportPdf()" class="btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="hidden sm:inline">导出 PDF</span>
+                <span class="inline sm:hidden">PDF</span>
             </button>
             <button onclick="exportDocx()" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
                 <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -525,7 +540,6 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             const content = tempDiv.innerHTML;
             const converted = htmlDocx.asBlob(`
                 <!DOCTYPE html>
-                <html>
                 <head>
                     <meta charset="utf-8">
                     <style>
@@ -543,14 +557,109 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                         p { margin-bottom: 8pt; margin-top: 0; }
                     </style>
                 </head>
-                <body>${content}</body>
-                </html>
+                <body>${content}<\/body>
+                <\/html>
             `);
 
             const link = document.createElement('a');
             link.href = URL.createObjectURL(converted);
             link.download = getFileName('docx');
             link.click();
+        }
+
+        function exportPdf() {
+            if (!editor.value) return;
+            
+            // 创建一个新窗口用于打印
+            const printWindow = window.open('', '_blank');
+            
+            if (!printWindow) {
+                alert('无法打开打印窗口，请检查浏览器设置');
+                return;
+            }
+            
+            // 获取预览内容并处理
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = preview.innerHTML;
+            
+            // 处理数学公式
+            tempDiv.querySelectorAll('[data-latex]').forEach(el => {
+                const latex = el.getAttribute('data-latex');
+                const isDisplay = el.getAttribute('data-display') === 'true';
+                if (latex) {
+                    try {
+                        el.innerHTML = katex.renderToString(latex, { 
+                            displayMode: isDisplay, 
+                            throwOnError: false 
+                        });
+                    } catch(e) { el.innerHTML = latex; }
+                }
+            });
+            
+            // 处理列表
+            tempDiv.querySelectorAll('li').forEach(li => {
+                const innerPs = li.querySelectorAll('p');
+                if (innerPs.length > 0) {
+                    innerPs.forEach(p => {
+                        const fragment = document.createDocumentFragment();
+                        while(p.firstChild) fragment.appendChild(p.firstChild);
+                        p.parentNode.replaceChild(fragment, p);
+                    });
+                }
+                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
+            });
+            
+            const content = tempDiv.innerHTML;
+            
+            // 构建打印页面
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>${getFileName('pdf')}</title>
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+                    <style>
+                        @page { size: A4; margin: 15mm 20mm; }
+                        body {
+                            font-family: 'Times New Roman', Georgia, serif;
+                            font-size: 12pt;
+                            line-height: 1.6;
+                            color: #333;
+                            max-width: 100%;
+                            padding: 0;
+                            margin: 0;
+                        }
+                        h1 { font-size: 20pt; margin: 16pt 0 12pt 0; font-weight: bold; }
+                        h2 { font-size: 16pt; margin: 14pt 0 10pt 0; font-weight: bold; }
+                        h3 { font-size: 14pt; margin: 12pt 0 8pt 0; font-weight: bold; }
+                        h4 { font-size: 12pt; margin: 10pt 0 6pt 0; font-weight: bold; }
+                        p { margin: 8pt 0; text-align: justify; }
+                        ul, ol { margin: 8pt 0; padding-left: 25pt; }
+                        li { margin: 4pt 0; }
+                        table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+                        th, td { border: 1pt solid #ccc; padding: 6pt 8pt; text-align: left; }
+                        th { background: #f5f5f5; font-weight: bold; }
+                        hr { border: 0; border-top: 1pt solid #ddd; margin: 15pt 0; }
+                        blockquote { border-left: 3pt solid #ccc; margin: 10pt 0; padding-left: 12pt; color: #666; font-style: italic; }
+                        code { background: #f5f5f5;padding: 2pt 4pt; font-family: 'Courier New', monospace; font-size: 10pt; }
+                        pre { background: #f5f5f5; padding: 12pt; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 10pt; }
+                        img { max-width: 100%; height: auto; }
+                        .math-block { text-align: center; margin: 12pt 0; }
+                        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                    </style>
+                </head>
+                <body>${content}</body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // 等待内容加载完成后触发打印
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 500);
         }
 
         // 初始化内容
