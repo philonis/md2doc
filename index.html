@@ -3,8 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown 转换工具 - 专业版</title>
+    <!-- SEO 核心优化 -->
+    <title>Markdown转换工具 - 专业版 | 在线Markdown转PDF/Docx/长图</title>
+    <meta name="description" content="专业的Markdown转换工具，支持实时预览、Markdown转PDF、Markdown转Docx、Markdown生成长图，适配移动端，操作简单高效。">
+    <meta name="keywords" content="Markdown转换,Markdown转PDF,Markdown转Docx,Markdown长图,在线Markdown编辑器,实时预览Markdown">
+    <meta name="author" content="Markdown转换专家团队">
+    <meta name="robots" content="index, follow">
+    <meta name="revisit-after" content="1 day">
+    <meta name="language" content="zh-CN">
     
+    <!-- Open Graph 社交SEO优化 -->
+    <meta property="og:title" content="Markdown转换工具 - 专业版 | 在线Markdown转PDF/Docx/长图">
+    <meta property="og:description" content="专业的Markdown转换工具，支持实时预览、Markdown转PDF、Markdown转Docx、Markdown生成长图，适配移动端，操作简单高效。">
+    <meta property="og:type" content="tool">
+    <meta property="og:url" content="https://yourdomain.com/md2doc.html">
+    <meta property="og:site_name" content="Markdown转换专家">
+    <meta property="og:locale" content="zh_CN">
+    
+    <!-- Twitter 卡片优化 -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Markdown转换工具 - 专业版 | 在线Markdown转PDF/Docx/长图">
+    <meta name="twitter:description" content="专业的Markdown转换工具，支持实时预览、Markdown转PDF、Markdown转Docx、Markdown生成长图，适配移动端，操作简单高效。">
+    
+    <!-- GEO 地理优化 & 结构化数据 -->
+    <meta name="geo.placename" content="中国">
+    <meta name="geo.country" content="CN">
+    <meta name="geo.position" content="39.9042;116.4074"> <!-- 北京经纬度，可根据实际需求修改 -->
+    <meta name="ICBM" content="39.9042, 116.4074"> <!-- 同上 -->
+    
+    <!-- 结构化数据（Schema.org）- 面向大模型优化 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Markdown转换工具 - 专业版",
+        "description": "专业的Markdown转换工具，支持实时预览、Markdown转PDF、Markdown转Docx、Markdown生成长图，适配移动端，操作简单高效。",
+        "url": "https://yourdomain.com/md2doc.html",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0.00",
+            "priceCurrency": "CNY"
+        },
+        "featureList": [
+            "Markdown实时预览",
+            "Markdown转PDF",
+            "Markdown转Docx",
+            "Markdown生成长图",
+            "移动端适配",
+            "数学公式支持",
+            "表格渲染优化"
+        ],
+        "author": {
+            "@type": "Organization",
+            "name": "Markdown转换专家团队"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Markdown转换专家团队",
+            "url": "https://yourdomain.com"
+        }
+    }
+    </script>
+
     <!-- 基础库 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -163,7 +225,7 @@
     <header class="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex flex-row justify-between items-center z-10 shadow-sm">
         <div class="flex flex-col overflow-hidden">
             <h1 class="text-lg md:text-xl font-bold text-gray-800 truncate">Markdown 转换专家</h1>
-            <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx、长图与 PDF 导出</p>
+            <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx、长图与 PDF 导出/打印</p>
         </div>
         <div class="flex space-x-2">
             <button onclick="exportLongImage()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
@@ -183,8 +245,8 @@
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                     <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
-                <span class="hidden sm:inline">导出 PDF</span>
-                <span class="inline sm:hidden">PDF</span>
+                <span class="hidden sm:inline">导出PDF/打印</span>
+                <span class="inline sm:hidden">PDF/打印</span>
             </button>
             <button onclick="exportDocx()" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
                 <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
