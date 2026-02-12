@@ -11,6 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+    <!-- 引入 html2canvas 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;600&display=swap');
@@ -138,6 +140,18 @@
             touch-action: manipulation;
         }
         .btn:active { transform: scale(0.92); opacity: 0.8; }
+
+        /* 导出中提示 */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 3000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -145,18 +159,26 @@
     <header class="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex flex-row justify-between items-center z-10 shadow-sm">
         <div class="flex flex-col overflow-hidden">
             <h1 class="text-lg md:text-xl font-bold text-gray-800 truncate">Markdown 转换专家</h1>
-            <p class="hidden md:block text-xs text-gray-500">支持实时预览与原生公式 Docx 导出</p>
+            <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx 与长图导出</p>
         </div>
         <div class="flex space-x-2">
+            <button onclick="exportLongImage()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span class="hidden sm:inline">导出长图</span>
+                <span class="inline sm:hidden">长图</span>
+            </button>
             <button onclick="exportDocx()" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
-                <!-- iOS 风格分享图标 (Square with Arrow Up) -->
                 <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                     <polyline points="16 6 12 2 8 6"></polyline>
                     <line x1="12" y1="2" x2="12" y2="15"></line>
                 </svg>
                 <span class="hidden sm:inline">导出 Docx</span>
-                <span class="inline sm:hidden">导出</span>
+                <span class="inline sm:hidden">Docx</span>
             </button>
         </div>
     </header>
@@ -191,16 +213,48 @@
         </div>
     </div>
 
+    <!-- 加载提示 -->
+    <div id="loading-overlay">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-gray-600 font-medium">正在生成长图，请稍候...</p>
+    </div>
+
     <script>
         const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
         const contextMenu = document.getElementById('context-menu');
         const debugModal = document.getElementById('debug-modal');
         const modalOverlay = document.getElementById('modal-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay');
 
         let isSyncingEditor = false;
         let isSyncingPreview = false;
         let markdownBlocks = [];
+        let isDefaultContent = true; // 标记是否为默认实例内容
+
+        const INITIAL_CONTENT = `# 🚀 欢迎使用 Markdown 转换专家 Pro
+
+本工具已全面适配移动端。在手机上，编辑器与预览区将自动切换为上下堆叠布局，方便随时记录灵感。
+
+---
+
+### 🎨 响应式优化说明
+1. **触控支持**：优化了导出按钮的点击面积，并支持长按唤起调试菜单。
+2. **布局切换**：当屏幕宽度小于 768px 时，布局由横向转为纵向。
+3. **表格适配**：表格支持横向滑动，不会挤压页面。
+
+### 📝 结构化内容演示
+
+#### 1. 多级列表与层级结构
+* **移动端特性**
+    1. 支持手势滚动。
+    2. 文字大小自动调整，确保可读性。
+
+#### 2. 数学公式引擎
+这里是一个关于正态分布的概率密度函数公式：
+$$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}} $$
+
+> 尝试在手机上点击右上角的分享图标进行导出。`;
 
         function getFileName(extension) {
             const lines = editor.value.split('\n');
@@ -210,10 +264,7 @@
             }
             if (!firstLine) return `document.${extension}`;
             
-            // 去除 Markdown 标记符号
             const cleanLine = firstLine.replace(/[#*`>]/g, '').trim();
-            
-            // 匹配第一个中英文标点符号：包括 , . ! ? : ; ( ) [ ] { } 及中文对应的符号
             const punctuationRegex = /[，。！？：；（）【】《》、,.!?:;()\[\]{}]/;
             const match = cleanLine.match(punctuationRegex);
             
@@ -222,7 +273,6 @@
                 fileName = cleanLine.substring(0, match.index).trim();
             }
             
-            // 如果标点符号前没文字，或者没匹配到标点，回退到原有截断逻辑
             if (!fileName) {
                 fileName = cleanLine.substring(0, 20) || 'document';
             }
@@ -236,7 +286,7 @@
         }
 
         function renderMath(text) {
-            text = text.replace(/\$\$([\s\S]+?)\$\$/g, (m, f) => {
+            text = text.replace(/\$\$(.+?)\$\$/gs, (m, f) => {
                 const clean = decodeHTMLEntities(f);
                 try {
                     const rendered = katex.renderToString(clean, { displayMode: true, throwOnError: false });
@@ -247,7 +297,7 @@
                 const clean = decodeHTMLEntities(f);
                 try {
                     const rendered = katex.renderToString(clean, { displayMode: false, throwOnError: false });
-                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span>`;
+                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span></span>`;
                 } catch(e) { return m; }
             });
             return text;
@@ -255,13 +305,19 @@
 
         function preprocessMarkdown(text) {
             let processed = text.replace(/　/g, ' ');
+            
+            // 解决中文/标点与加粗符号相邻导致无法解析的问题
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '$1 **$2** $3');
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*/g, '$1 **$2**');
+            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$2** $3');
+
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
             processed = processed.replace(/([^\n])\n([-]{3,})(\s|$)/g, '$1\n\n$2$3');
             return processed;
         }
 
-        editor.addEventListener('input', () => {
+        function updatePreview() {
             const val = editor.value;
             markdownBlocks = val.split(/\n\n+/);
             const cleanMarkdown = preprocessMarkdown(val);
@@ -274,9 +330,21 @@
             });
             
             preview.innerHTML = tempDiv.innerHTML;
+        }
+
+        editor.addEventListener('input', () => {
+            isDefaultContent = false;
+            updatePreview();
         });
 
-        // 仅在桌面端开启同步滚动
+        editor.addEventListener('click', () => {
+            if (isDefaultContent && editor.value === INITIAL_CONTENT) {
+                editor.value = '';
+                isDefaultContent = false;
+                updatePreview();
+            }
+        });
+
         const isMobile = () => window.innerWidth <= 768;
 
         editor.addEventListener('scroll', () => {
@@ -325,11 +393,8 @@
             if (selectedText.trim()) {
                 e.preventDefault();
                 contextMenu.style.display = 'block';
-                
-                // 确保菜单不超出屏幕右侧
                 let x = e.pageX;
                 if (x + 180 > window.innerWidth) x = window.innerWidth - 190;
-                
                 contextMenu.style.left = x + 'px';
                 contextMenu.style.top = e.pageY + 'px';
             }
@@ -339,7 +404,6 @@
         preview.addEventListener('contextmenu', (e) => handleContextMenu(e, false));
         document.addEventListener('click', () => contextMenu.style.display = 'none');
 
-        // 移动端长按模拟右键（可选增强）
         let touchTimer;
         const touchDuration = 600;
         const handleTouchStart = (e, isFromEditor) => {
@@ -375,6 +439,61 @@
             }
         }
 
+        async function exportLongImage() {
+            if (!editor.value) return;
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                // 创建一个隐藏的渲染容器
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                container.style.width = '375px';
+                container.style.backgroundColor = 'white';
+                container.style.padding = '30px';
+                
+                // 注入预览 HTML 并强制修列表样式
+                container.innerHTML = preview.innerHTML;
+                
+                // html2canvas 对 Tailwind Typography 的伪元素(::before)支持不佳
+                // 强制将列表切换为原生渲染模式
+                const style = document.createElement('style');
+                style.textContent = `
+                    .export-wrapper { font-family: sans-serif; }
+                    .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
+                    .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
+                    .export-wrapper li { display: list-item !important; margin-bottom: 0.5rem !important; }
+                    /* 禁用 Tailwind Typography 的伪元素列表符号 */
+                    .export-wrapper ul > li::before, .export-wrapper ol > li::before { display: none !important; }
+                `;
+                container.appendChild(style);
+                container.className = 'export-wrapper prose prose-base max-w-none leading-relaxed';
+                
+                document.body.appendChild(container);
+
+                // 等待渲染完毕
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 375
+                });
+
+                const link = document.createElement('a');
+                link.download = getFileName('png');
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                document.body.removeChild(container);
+            } catch (err) {
+                console.error('导出失败:', err);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
         function exportDocx() {
             if (!editor.value) return;
             const tempDiv = document.createElement('div');
@@ -391,6 +510,18 @@
                 } catch (err) { console.error(err); }
             });
 
+            tempDiv.querySelectorAll('li').forEach(li => {
+                const innerPs = li.querySelectorAll('p');
+                if (innerPs.length > 0) {
+                    innerPs.forEach(p => {
+                        const fragment = document.createDocumentFragment();
+                        while(p.firstChild) fragment.appendChild(p.firstChild);
+                        p.parentNode.replaceChild(fragment, p);
+                    });
+                }
+                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
+            });
+
             const content = tempDiv.innerHTML;
             const converted = htmlDocx.asBlob(`
                 <!DOCTYPE html>
@@ -398,16 +529,18 @@
                 <head>
                     <meta charset="utf-8">
                     <style>
-                        body { font-family: 'Arial', sans-serif; line-height: 1.6; }
+                        body { font-family: 'Arial', sans-serif; line-height: 1.5; }
                         table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
                         th, td { border: 1pt solid #cccccc; padding: 6pt; text-align: left; }
                         th { background-color: #f2f2f2; font-weight: bold; }
                         hr { border: 0; border-top: 1pt solid #eeeeee; margin: 15pt 0; }
-                        ul, ol { margin-left: 20pt; }
-                        h1 { font-size: 22pt; margin-bottom: 15pt; }
-                        h2 { font-size: 18pt; margin-top: 20pt; }
-                        h3 { font-size: 14pt; margin-top: 15pt; }
-                        p { margin-bottom: 10pt; }
+                        ul, ol { margin-left: 0; padding-left: 25pt; margin-top: 6pt; margin-bottom: 6pt; }
+                        li { margin-bottom: 3pt; margin-top: 3pt; }
+                        li > span, li > div { display: inline; }
+                        h1 { font-size: 22pt; margin-bottom: 12pt; margin-top: 18pt; font-weight: bold; }
+                        h2 { font-size: 18pt; margin-top: 16pt; margin-bottom: 10pt; font-weight: bold; }
+                        h3 { font-size: 14pt; margin-top: 14pt; margin-bottom: 8pt; font-weight: bold; }
+                        p { margin-bottom: 8pt; margin-top: 0; }
                     </style>
                 </head>
                 <body>${content}</body>
@@ -420,31 +553,9 @@
             link.click();
         }
 
-        // 初始化
-        editor.value = `# 🚀 欢迎使用 Markdown 转换专家 Pro
-
-本工具已全面适配移动端。在手机上，编辑器与预览区将自动切换为上下堆叠布局，方便随时记录灵感。
-
----
-
-### 🎨 响应式优化说明
-1. **触控支持**：优化了导出按钮的点击面积，并支持长按唤起调试菜单。
-2. **布局切换**：当屏幕宽度小于 768px 时，布局由横向转为纵向。
-3. **表格适配**：表格支持横向滑动，不会挤压页面。
-
-### 📝 结构化内容演示
-
-#### 1. 多级列表与层级结构
-* **移动端特性**
-    1. 支持手势滚动。
-    2. 文字大小自动调整，确保可读性。
-
-#### 2. 数学公式引擎
-这里是一个关于正态分布的概率密度函数公式：
-$$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}} $$
-
-> 尝试在手机上点击右上角的分享图标进行导出。`;
-        editor.dispatchEvent(new Event('input'));
+        // 初始化内容
+        editor.value = INITIAL_CONTENT;
+        updatePreview();
     </script>
 </body>
 </html>
