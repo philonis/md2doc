@@ -228,6 +228,15 @@
             <p class="hidden md:block text-xs text-gray-500">支持实时预览、Docx、长图与 PDF 导出/打印</p>
         </div>
         <div class="flex space-x-2">
+            <button onclick="openWatermarkSettings()" class="btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+                <span class="hidden sm:inline">水印设置</span>
+                <span class="inline sm:hidden">水印</span>
+            </button>
             <button onclick="exportLongImage()" class="btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md flex items-center shrink-0">
                 <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -290,6 +299,67 @@
         </div>
     </div>
 
+    <!-- 水印设置弹窗 -->
+    <div id="watermark-modal" class="fixed inset-0 z-[2000] hidden items-center justify-center" style="background: rgba(0,0,0,0.5);">
+        <div class="bg-white rounded-2xl shadow-2xl w-[90%] max-w-md p-6 relative">
+            <div class="flex justify-between items-center mb-5 border-b pb-3">
+                <h3 class="font-bold text-lg text-gray-800">水印设置</h3>
+                <button onclick="closeWatermarkModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">水印内容</label>
+                    <input type="text" id="watermark-text" placeholder="请输入水印文字" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" value="内部资料">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">倾斜角度</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="range" id="watermark-angle" min="0" max="90" value="45" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <span id="angle-value" class="text-sm text-gray-600 w-10 text-right">45°</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">透明度</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="range" id="watermark-opacity" min="10" max="100" value="50" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <span id="opacity-value" class="text-sm text-gray-600 w-10 text-right">50%</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">字体</label>
+                    <select id="watermark-font" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                        <option value="SimSun, serif">宋体</option>
+                        <option value="SimHei, sans-serif">黑体</option>
+                        <option value="Microsoft YaHei, sans-serif">微软雅黑</option>
+                        <option value="KaiTi, serif">楷体</option>
+                        <option value="FangSong, serif">仿宋</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">字体大小</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="watermark-fontsize" min="12" max="36" value="18" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <span id="fontsize-value" class="text-sm text-gray-600 w-10 text-right">18px</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="watermark-enabled" class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" checked>
+                        <span class="text-sm text-gray-700">启用水印</span>
+                    </label>
+                    <button onclick="previewWatermark()" class="text-sm text-purple-600 hover:text-purple-800 font-medium">预览效果</button>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeWatermarkModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">取消</button>
+                <button onclick="saveWatermarkSettings()" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">保存设置</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 加载提示 -->
     <div id="loading-overlay">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -307,7 +377,16 @@
         let isSyncingEditor = false;
         let isSyncingPreview = false;
         let markdownBlocks = [];
-        let isDefaultContent = true; // 标记是否为默认实例内容
+        let isDefaultContent = true;
+
+        let watermarkSettings = {
+            enabled: true,
+            text: '内部资料',
+            angle: 45,
+            opacity: 50,
+            font: 'SimSun, serif',
+            fontSize: 18
+        };
 
         const INITIAL_CONTENT = `# 🚀 欢迎使用 Markdown 转换专家 Pro
 
@@ -516,12 +595,155 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             }
         }
 
+        function openWatermarkSettings() {
+            const modal = document.getElementById('watermark-modal');
+            modal.style.display = 'flex';
+            
+            document.getElementById('watermark-text').value = watermarkSettings.text;
+            document.getElementById('watermark-angle').value = watermarkSettings.angle;
+            document.getElementById('watermark-opacity').value = watermarkSettings.opacity;
+            document.getElementById('watermark-font').value = watermarkSettings.font;
+            document.getElementById('watermark-fontsize').value = watermarkSettings.fontSize;
+            document.getElementById('watermark-enabled').checked = watermarkSettings.enabled;
+            
+            document.getElementById('angle-value').textContent = watermarkSettings.angle + '°';
+            document.getElementById('opacity-value').textContent = watermarkSettings.opacity + '%';
+            document.getElementById('fontsize-value').textContent = watermarkSettings.fontSize + 'px';
+        }
+
+        function closeWatermarkModal() {
+            document.getElementById('watermark-modal').style.display = 'none';
+        }
+
+        function saveWatermarkSettings() {
+            watermarkSettings = {
+                enabled: document.getElementById('watermark-enabled').checked,
+                text: document.getElementById('watermark-text').value || '内部资料',
+                angle: parseInt(document.getElementById('watermark-angle').value),
+                opacity: parseInt(document.getElementById('watermark-opacity').value),
+                font: document.getElementById('watermark-font').value,
+                fontSize: parseInt(document.getElementById('watermark-fontsize').value)
+            };
+            closeWatermarkModal();
+        }
+
+        function previewWatermark() {
+            const tempSettings = {
+                enabled: true,
+                text: document.getElementById('watermark-text').value || '内部资料',
+                angle: parseInt(document.getElementById('watermark-angle').value),
+                opacity: parseInt(document.getElementById('watermark-opacity').value),
+                font: document.getElementById('watermark-font').value,
+                fontSize: parseInt(document.getElementById('watermark-fontsize').value)
+            };
+            
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('无法打开预览窗口，请检查浏览器设置');
+                return;
+            }
+            
+            const watermarkCSS = generateWatermarkCSS(tempSettings);
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>水印预览</title>
+                    <style>
+                        body {
+                            font-family: 'Times New Roman', Georgia, serif;
+                            padding: 40px;
+                            background: white;
+                        }
+                        .content {
+                            font-size: 14pt;
+                            line-height: 1.8;
+                            color: #333;
+                        }
+                        ${watermarkCSS}
+                    </style>
+                </head>
+                <body>
+                    <div class="watermark-layer"></div>
+                    <div class="content">
+                        <h1>水印效果预览</h1>
+                        <p>这是一段示例文本，用于展示水印效果。水印会以倾斜角度覆盖整个页面。</p>
+                        <p>水印内容：${tempSettings.text}</p>
+                        <p>倾斜角度：${tempSettings.angle}°</p>
+                        <p>透明度：${tempSettings.opacity}%</p>
+                        <p>字体大小：${tempSettings.fontSize}px</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function generateWatermarkCSS(settings) {
+            if (!settings.enabled || !settings.text) return '';
+            
+            const opacity = settings.opacity / 100;
+            const angle = -settings.angle;
+            
+            return `
+                .watermark-layer {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 9999;
+                    overflow: hidden;
+                }
+                .watermark-layer::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background-image: repeating-linear-gradient(
+                        ${angle}deg,
+                        transparent,
+                        transparent 80px,
+                        rgba(0, 0, 0, 0) 80px,
+                        rgba(0, 0, 0, 0) 80px
+                    );
+                }
+                .watermark-layer::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150'%3E%3Ctext x='50%25' y='50%25' font-family='${encodeURIComponent(settings.font)}' font-size='${settings.fontSize}' fill='rgba(0,0,0,${opacity})' text-anchor='middle' dominant-baseline='middle' transform='rotate(${angle}, 100, 75)'%3E${encodeURIComponent(settings.text)}%3C/text%3E%3C/svg%3E");
+                    background-repeat: repeat;
+                    pointer-events: none;
+                }
+            `;
+        }
+
+        document.getElementById('watermark-angle').addEventListener('input', function() {
+            document.getElementById('angle-value').textContent = this.value + '°';
+        });
+
+        document.getElementById('watermark-opacity').addEventListener('input', function() {
+            document.getElementById('opacity-value').textContent = this.value + '%';
+        });
+
+        document.getElementById('watermark-fontsize').addEventListener('input', function() {
+            document.getElementById('fontsize-value').textContent = this.value + 'px';
+        });
+
         async function exportLongImage() {
             if (!editor.value) return;
             loadingOverlay.style.display = 'flex';
 
             try {
-                // 创建一个隐藏的渲染容器
                 const container = document.createElement('div');
                 container.style.position = 'absolute';
                 container.style.left = '-9999px';
@@ -529,18 +751,14 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 container.style.backgroundColor = 'white';
                 container.style.padding = '30px';
                 
-                // 注入预览 HTML 并强制修列表样式
                 container.innerHTML = preview.innerHTML;
                 
-                // html2canvas 对 Tailwind Typography 的伪元素(::before)支持不佳
-                // 强制将列表切换为原生渲染模式
                 const style = document.createElement('style');
                 style.textContent = `
                     .export-wrapper { font-family: sans-serif; }
                     .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
                     .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
                     .export-wrapper li { display: list-item !important; margin-bottom: 0.5rem !important; }
-                    /* 禁用 Tailwind Typography 的伪元素列表符号 */
                     .export-wrapper ul > li::before, .export-wrapper ol > li::before { display: none !important; }
                 `;
                 container.appendChild(style);
@@ -548,7 +766,6 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 
                 document.body.appendChild(container);
 
-                // 等待渲染完毕
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 const canvas = await html2canvas(container, {
@@ -557,6 +774,40 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                     backgroundColor: '#ffffff',
                     windowWidth: 375
                 });
+
+                if (watermarkSettings.enabled && watermarkSettings.text) {
+                    const ctx = canvas.getContext('2d');
+                    const angle = -watermarkSettings.angle * Math.PI / 180;
+                    const opacity = watermarkSettings.opacity / 100;
+                    const fontSize = watermarkSettings.fontSize * 2;
+                    
+                    ctx.font = `${fontSize}px ${watermarkSettings.font}`;
+                    ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const textWidth = ctx.measureText(watermarkSettings.text).width;
+                    const gapX = textWidth + 100;
+                    const gapY = fontSize * 3;
+                    
+                    ctx.save();
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(angle);
+                    
+                    const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+                    const startX = -diagonal;
+                    const endX = diagonal;
+                    const startY = -diagonal;
+                    const endY = diagonal;
+                    
+                    for (let y = startY; y < endY; y += gapY) {
+                        for (let x = startX; x < endX; x += gapX) {
+                            ctx.fillText(watermarkSettings.text, x, y);
+                        }
+                    }
+                    
+                    ctx.restore();
+                }
 
                 const link = document.createElement('a');
                 link.download = getFileName('png');
@@ -672,8 +923,9 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             });
             
             const content = tempDiv.innerHTML;
+            const watermarkCSS = generateWatermarkCSS(watermarkSettings);
+            const watermarkLayer = watermarkSettings.enabled && watermarkSettings.text ? '<div class="watermark-layer"></div>' : '';
             
-            // 构建打印页面
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
@@ -709,9 +961,10 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                         img { max-width: 100%; height: auto; }
                         .math-block { text-align: center; margin: 12pt 0; }
                         @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                        ${watermarkCSS}
                     </style>
                 </head>
-                <body>${content}</body>
+                <body>${watermarkLayer}${content}</body>
                 </html>
             `);
             
