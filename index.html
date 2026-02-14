@@ -448,6 +448,29 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             return `${fileName}.${extension}`;
         }
 
+        function processListItems(container) {
+            container.querySelectorAll('li').forEach(li => {
+                li.querySelectorAll('p').forEach(p => {
+                    const fragment = document.createDocumentFragment();
+                    while(p.firstChild) fragment.appendChild(p.firstChild);
+                    p.parentNode.replaceChild(fragment, p);
+                });
+                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
+            });
+        }
+
+        function getWatermarkSettingsFromForm() {
+            return {
+                enabled: document.getElementById('watermark-enabled').checked,
+                text: document.getElementById('watermark-text').value || '内部资料',
+                angle: parseInt(document.getElementById('watermark-angle').value),
+                opacity: parseInt(document.getElementById('watermark-opacity').value),
+                font: document.getElementById('watermark-font').value,
+                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
+                color: document.getElementById('watermark-color').value
+            };
+        }
+
         function decodeHTMLEntities(text) {
             const entities = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
             return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;/g, m => entities[m]);
@@ -465,7 +488,7 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 const clean = decodeHTMLEntities(f);
                 try {
                     const rendered = katex.renderToString(clean, { displayMode: false, throwOnError: false });
-                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span></span>`;
+                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span>`;
                 } catch(e) { return m; }
             });
             return text;
@@ -474,10 +497,9 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         function preprocessMarkdown(text) {
             let processed = text.replace(/　/g, ' ');
             
-            // 解决中文/标点与加粗符号相邻导致无法解析的问题
-            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$1** $2');
-            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '$1 **$2** $3');
-            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*/g, '$1 **$2**');
+            // 只处理中文字符/标点与 ** 相邻的情况，避免破坏正常的加粗语法
+            processed = processed.replace(/([\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])\*\*/g, '$1 **');
+            processed = processed.replace(/\*\*([\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])/g, '** $1');
 
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
@@ -630,28 +652,12 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         }
 
         function saveWatermarkSettings() {
-            watermarkSettings = {
-                enabled: document.getElementById('watermark-enabled').checked,
-                text: document.getElementById('watermark-text').value || '内部资料',
-                angle: parseInt(document.getElementById('watermark-angle').value),
-                opacity: parseInt(document.getElementById('watermark-opacity').value),
-                font: document.getElementById('watermark-font').value,
-                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
-                color: document.getElementById('watermark-color').value
-            };
+            watermarkSettings = getWatermarkSettingsFromForm();
             closeWatermarkModal();
         }
 
         function previewWatermark() {
-            const tempSettings = {
-                enabled: true,
-                text: document.getElementById('watermark-text').value || '内部资料',
-                angle: parseInt(document.getElementById('watermark-angle').value),
-                opacity: parseInt(document.getElementById('watermark-opacity').value),
-                font: document.getElementById('watermark-font').value,
-                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
-                color: document.getElementById('watermark-color').value
-            };
+            const tempSettings = { ...getWatermarkSettingsFromForm(), enabled: true };
             
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
@@ -719,21 +725,6 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                     z-index: 9999;
                     overflow: hidden;
                 }
-                .watermark-layer::before {
-                    content: '';
-                    position: absolute;
-                    top: -50%;
-                    left: -50%;
-                    width: 200%;
-                    height: 200%;
-                    background-image: repeating-linear-gradient(
-                        ${angle}deg,
-                        transparent,
-                        transparent 80px,
-                        rgba(0, 0, 0, 0) 80px,
-                        rgba(0, 0, 0, 0) 80px
-                    );
-                }
                 .watermark-layer::after {
                     content: '';
                     position: absolute;
@@ -768,25 +759,9 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             const palette = document.getElementById('color-palette');
             const colors = [
                 '#000000', '#333333', '#666666', '#999999', '#cccccc', '#ffffff',
-                '#ff0000', '#ff3333', '#ff6666', '#ff9999', '#ffcccc', '#990000',
-                '#cc0000', '#cc3333', '#cc6666', '#cc9999', '#ffcc00', '#ff9900',
-                '#ff6600', '#ff3300', '#cc3300', '#993300', '#663300', '#333300',
-                '#00ff00', '#33ff33', '#66ff66', '#99ff99', '#ccffcc', '#009900',
-                '#00cc00', '#00cc33', '#00cc66', '#00cc99', '#00ff99', '#00ff66',
-                '#0000ff', '#3333ff', '#6666ff', '#9999ff', '#ccccff', '#000099',
-                '#0000cc', '#3300cc', '#6600cc', '#9900cc', '#cc00ff', '#cc00cc',
-                '#ffff00', '#ffff33', '#ffff66', '#ffff99', '#ffffcc', '#999900',
-                '#cccc00', '#cccc33', '#cccc66', '#cccc99', '#99cc00', '#66cc00',
-                '#00ffff', '#33ffff', '#66ffff', '#99ffff', '#ccffff', '#009999',
-                '#00cccc', '#00cccc', '#33cccc', '#66cccc', '#99cccc', '#00ccff',
-                '#ff00ff', '#ff33ff', '#ff66ff', '#ff99ff', '#ffccff', '#990099',
-                '#cc00cc', '#cc33cc', '#cc66cc', '#cc99cc', '#cc66ff', '#cc33ff',
-                '#800000', '#8b0000', '#a52a2a', '#b22222', '#dc143c', '#ff0000',
-                '#006400', '#008000', '#228b22', '#2e8b57', '#32cd32', '#00ff00',
-                '#000080', '#00008b', '#0000cd', '#0000ff', '#4169e1', '#6495ed',
-                '#8b4513', '#a0522d', '#cd853f', '#deb887', '#f4a460', '#ffdab9',
-                '#4b0082', '#6a0dad', '#7b68ee', '#8470ff', '#9370db', '#ba55d3',
-                '#2f4f4f', '#696969', '#708090', '#778899', '#a9a9a9', '#c0c0c0'
+                '#ff0000', '#ff6600', '#ffcc00', '#00ff00', '#00ffff', '#0066ff',
+                '#0000ff', '#6600ff', '#9900ff', '#ff00ff', '#ff3399', '#ff6666',
+                '#800000', '#006400', '#000080', '#4b0082', '#2f4f4f', '#8b4513'
             ];
             
             colors.forEach(color => {
@@ -907,17 +882,7 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 } catch (err) { console.error(err); }
             });
 
-            tempDiv.querySelectorAll('li').forEach(li => {
-                const innerPs = li.querySelectorAll('p');
-                if (innerPs.length > 0) {
-                    innerPs.forEach(p => {
-                        const fragment = document.createDocumentFragment();
-                        while(p.firstChild) fragment.appendChild(p.firstChild);
-                        p.parentNode.replaceChild(fragment, p);
-                    });
-                }
-                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
-            });
+            processListItems(tempDiv);
 
             const content = tempDiv.innerHTML;
             
@@ -971,18 +936,7 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 }
             });
             
-            // 处理列表
-            tempDiv.querySelectorAll('li').forEach(li => {
-                const innerPs = li.querySelectorAll('p');
-                if (innerPs.length > 0) {
-                    innerPs.forEach(p => {
-                        const fragment = document.createDocumentFragment();
-                        while(p.firstChild) fragment.appendChild(p.firstChild);
-                        p.parentNode.replaceChild(fragment, p);
-                    });
-                }
-                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
-            });
+            processListItems(tempDiv);
             
             const content = tempDiv.innerHTML;
             const watermarkCSS = generateWatermarkCSS(watermarkSettings);
