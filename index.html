@@ -497,9 +497,11 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         function preprocessMarkdown(text) {
             let processed = text.replace(/　/g, ' ');
             
-            // 只处理中文字符/标点与 ** 相邻的情况，避免破坏正常的加粗语法
-            processed = processed.replace(/([\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])\*\*/g, '$1 **');
-            processed = processed.replace(/\*\*([\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])/g, '** $1');
+            // 在 **内容** 整体与外部非空白字符之间添加空格
+            // 处理 **内容** 后面紧跟非空白字符的情况
+            processed = processed.replace(/(\*\*[^\s*].*?[^\s*]\*\*)([^\s])/gs, '$1 $2');
+            // 处理非空白字符紧跟 **内容** 的情况
+            processed = processed.replace(/([^\s])(\*\*[^\s*].*?[^\s*]\*\*)/gs, '$1 $2');
 
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
