@@ -951,14 +951,6 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         function exportPdf() {
             if (!editor.value) return;
             
-            // 创建一个新窗口用于打印
-            const printWindow = window.open('', '_blank');
-            
-            if (!printWindow) {
-                alert('无法打开打印窗口，请检查浏览器设置');
-                return;
-            }
-            
             // 获取预览内容并处理
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = preview.innerHTML;
@@ -994,7 +986,22 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             const watermarkCSS = generateWatermarkCSS(watermarkSettings);
             const watermarkLayer = watermarkSettings.enabled && watermarkSettings.text ? '<div class="watermark-layer"></div>' : '';
             
-            printWindow.document.write(`
+            // 使用隐藏的 iframe 进行打印，避免打开新标签页
+            let printIframe = document.getElementById('print-iframe');
+            if (!printIframe) {
+                printIframe = document.createElement('iframe');
+                printIframe.id = 'print-iframe';
+                printIframe.style.position = 'absolute';
+                printIframe.style.width = '0';
+                printIframe.style.height = '0';
+                printIframe.style.border = 'none';
+                printIframe.style.left = '-9999px';
+                document.body.appendChild(printIframe);
+            }
+            
+            const iframeDoc = printIframe.contentDocument || printIframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -1035,13 +1042,12 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 <body>${watermarkLayer}${content}</body>
                 </html>
             `);
-            
-            printWindow.document.close();
+            iframeDoc.close();
             
             // 等待内容加载完成后触发打印
             setTimeout(() => {
-                printWindow.focus();
-                printWindow.print();
+                printIframe.contentWindow.focus();
+                printIframe.contentWindow.print();
             }, 500);
         }
 
