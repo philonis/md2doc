@@ -477,7 +477,7 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             // 解决中文/标点与加粗符号相邻导致无法解析的问题
             processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '$1 **$2** $3');
             processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*/g, '$1 **$2**');
-            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$2** $3');
+            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$1** $2');
 
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
