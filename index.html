@@ -132,20 +132,28 @@
             color: #333;
             padding: 1.5rem;
             overflow-y: auto;
+            line-height: 1.8;
         }
 
-        /* 预览区列表样式增强 */
-        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
-        #preview li { margin-bottom: 0.5rem; }
-        
-        /* 预览区分割线样式 */
-        #preview hr { border: 0; border-top: 2px solid #eaeaea; margin: 2rem 0; }
+        #preview h1 { font-size: 2em; font-weight: 700; margin: 1.2em 0 0.6em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+        #preview h2 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em; }
+        #preview h3 { font-size: 1.25em; font-weight: 600; margin: 0.8em 0 0.4em; }
+        #preview h4 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; }
+        #preview h5, #preview h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em; }
 
-        /* 预览区表格样式 */
-        #preview table { border-collapse: collapse; width: 100%; margin: 1em 0; overflow-x: auto; display: block; }
+        #preview p { margin: 0.6em 0; line-height: 1.8; }
+
+        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.6em 0; }
+        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.6em 0; }
+        #preview li { margin-bottom: 0.25em; line-height: 1.8; }
+        
+        #preview hr { border: 0; border-top: 2px solid #eaeaea; margin: 1.5em 0; }
+
+        #preview table { border-collapse: collapse; width: 100%; margin: 0.8em 0; overflow-x: auto; display: block; }
         #preview th, #preview td { border: 1px solid #e5e7eb; padding: 8px 12px; min-width: 80px; }
         #preview th { background: #f9fafb; }
+
+        #preview blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 0.8em 0; color: #666; }
 
         /* 右键菜单样式 */
         #context-menu {
