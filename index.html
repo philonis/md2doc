@@ -804,14 +804,25 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 
                 const style = document.createElement('style');
                 style.textContent = `
-                    .export-wrapper { font-family: sans-serif; }
-                    .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
-                    .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
-                    .export-wrapper li { display: list-item !important; margin-bottom: 0.5rem !important; }
+                    .export-wrapper { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.8; color: #333; }
+                    .export-wrapper h1 { font-size: 2em; font-weight: 700; margin: 1.2em 0 0.6em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+                    .export-wrapper h2 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em; }
+                    .export-wrapper h3 { font-size: 1.25em; font-weight: 600; margin: 0.8em 0 0.4em; }
+                    .export-wrapper h4 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; }
+                    .export-wrapper h5, .export-wrapper h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em; }
+                    .export-wrapper p { margin: 0.6em 0; line-height: 1.8; }
+                    .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0.6em 0 !important; }
+                    .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0.6em 0 !important; }
+                    .export-wrapper li { display: list-item !important; margin-bottom: 0.25em !important; line-height: 1.8; }
                     .export-wrapper ul > li::before, .export-wrapper ol > li::before { display: none !important; }
+                    .export-wrapper blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 0.8em 0; color: #666; }
+                    .export-wrapper table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
+                    .export-wrapper th, .export-wrapper td { border: 1px solid #e5e7eb; padding: 8px 12px; }
+                    .export-wrapper th { background: #f9fafb; }
+                    .export-wrapper hr { border: 0; border-top: 2px solid #eaeaea; margin: 1.5em 0; }
                 `;
                 container.appendChild(style);
-                container.className = 'export-wrapper prose prose-base max-w-none leading-relaxed';
+                container.className = 'export-wrapper';
                 
                 document.body.appendChild(container);
 
