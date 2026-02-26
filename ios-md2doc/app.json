@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Md2Doc",
+    "slug": "md2doc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.md2doc.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "UIRequiredDeviceCapabilities": ["armv7"],
+        "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.md2doc.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": []
+  }
+}
