@@ -132,28 +132,20 @@
             color: #333;
             padding: 1.5rem;
             overflow-y: auto;
-            line-height: 1.8;
         }
 
-        #preview h1 { font-size: 2em; font-weight: 700; margin: 1.2em 0 0.6em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
-        #preview h2 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em; }
-        #preview h3 { font-size: 1.25em; font-weight: 600; margin: 0.8em 0 0.4em; }
-        #preview h4 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; }
-        #preview h5, #preview h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em; }
-
-        #preview p { margin: 0.6em 0; line-height: 1.8; }
-
-        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.6em 0; }
-        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.6em 0; }
-        #preview li { margin-bottom: 0.25em; line-height: 1.8; }
+        /* 预览区列表样式增强 */
+        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #preview li { margin-bottom: 0.5rem; }
         
-        #preview hr { border: 0; border-top: 2px solid #eaeaea; margin: 1.5em 0; }
+        /* 预览区分割线样式 */
+        #preview hr { border: 0; border-top: 2px solid #eaeaea; margin: 2rem 0; }
 
-        #preview table { border-collapse: collapse; width: 100%; margin: 0.8em 0; overflow-x: auto; display: block; }
+        /* 预览区表格样式 */
+        #preview table { border-collapse: collapse; width: 100%; margin: 1em 0; overflow-x: auto; display: block; }
         #preview th, #preview td { border: 1px solid #e5e7eb; padding: 8px 12px; min-width: 80px; }
         #preview th { background: #f9fafb; }
-
-        #preview blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 0.8em 0; color: #666; }
 
         /* 右键菜单样式 */
         #context-menu {
@@ -456,29 +448,6 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             return `${fileName}.${extension}`;
         }
 
-        function processListItems(container) {
-            container.querySelectorAll('li').forEach(li => {
-                li.querySelectorAll('p').forEach(p => {
-                    const fragment = document.createDocumentFragment();
-                    while(p.firstChild) fragment.appendChild(p.firstChild);
-                    p.parentNode.replaceChild(fragment, p);
-                });
-                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
-            });
-        }
-
-        function getWatermarkSettingsFromForm() {
-            return {
-                enabled: document.getElementById('watermark-enabled').checked,
-                text: document.getElementById('watermark-text').value || '内部资料',
-                angle: parseInt(document.getElementById('watermark-angle').value),
-                opacity: parseInt(document.getElementById('watermark-opacity').value),
-                font: document.getElementById('watermark-font').value,
-                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
-                color: document.getElementById('watermark-color').value
-            };
-        }
-
         function decodeHTMLEntities(text) {
             const entities = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
             return text.replace(/&amp;|&lt;|&gt;|&quot;|&#39;|&nbsp;/g, m => entities[m]);
@@ -496,7 +465,7 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 const clean = decodeHTMLEntities(f);
                 try {
                     const rendered = katex.renderToString(clean, { displayMode: false, throwOnError: false });
-                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span>`;
+                    return `<span class="math-inline" data-latex="${clean}" data-display="false">${rendered}</span></span>`;
                 } catch(e) { return m; }
             });
             return text;
@@ -505,11 +474,10 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         function preprocessMarkdown(text) {
             let processed = text.replace(/　/g, ' ');
             
-            // 在 **内容** 整体与外部非空白字符之间添加空格
-            // 处理 **内容** 后面紧跟非空白字符的情况
-            processed = processed.replace(/(\*\*[^\s*].*?[^\s*]\*\*)([^\s])/gs, '$1 $2');
-            // 处理非空白字符紧跟 **内容** 的情况
-            processed = processed.replace(/([^\s])(\*\*[^\s*].*?[^\s*]\*\*)/gs, '$1 $2');
+            // 解决中文/标点与加粗符号相邻导致无法解析的问题
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '$1 **$2** $3');
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*/g, '$1 **$2**');
+            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$2** $3');
 
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
@@ -613,8 +581,87 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         
         editor.addEventListener('touchstart', (e) => handleTouchStart(e, true), {passive: true});
         editor.addEventListener('touchend', handleTouchEnd);
+        
         preview.addEventListener('touchstart', (e) => handleTouchStart(e, false), {passive: true});
         preview.addEventListener('touchend', handleTouchEnd);
+
+        // 文件拖放功能
+        const editorContainer = editor.parentElement;
+        
+        // 拖放区域样式
+        const dragOverStyle = 'border-2 border-dashed border-blue-500 bg-blue-50';
+        
+        // 阻止默认拖放行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            editorContainer.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+        
+        // 拖入时显示样式
+        ['dragenter', 'dragover'].forEach(eventName => {
+            editorContainer.addEventListener(eventName, () => {
+                editorContainer.classList.add(dragOverStyle);
+                if (!document.getElementById('drop-hint')) {
+                    const hint = document.createElement('div');
+                    hint.id = 'drop-hint';
+                    hint.className = 'absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-90 text-white text-xl font-bold pointer-events-none z-10';
+                    hint.textContent = '📄 释放以导入 Markdown 文件';
+                    editorContainer.style.position = 'relative';
+                    editorContainer.appendChild(hint);
+                }
+            }, false);
+        });
+        
+        // 拖出时移除样式
+        ['dragleave', 'drop'].forEach(eventName => {
+            editorContainer.addEventListener(eventName, () => {
+                editorContainer.classList.remove(dragOverStyle);
+                const hint = document.getElementById('drop-hint');
+                if (hint) hint.remove();
+            }, false);
+        });
+        
+        // 处理文件放下
+        editorContainer.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        editor.value = event.target.result;
+                        renderMarkdown();
+                        showNotification('✅ 已导入: ' + file.name, 'success');
+                    };
+                    reader.onerror = () => {
+                        showNotification('❌ 文件读取失败', 'error');
+                    };
+                    reader.readAsText(file);
+                } else {
+                    showNotification('❌ 请拖入 .md 或 .markdown 文件', 'error');
+                }
+            }
+        });
+        
+        // 通知提示函数
+        function showNotification(message, type = 'info') {
+            const existing = document.getElementById('drop-notification');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.id = 'drop-notification';
+            notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 font-medium ' + 
+                (type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500') + ' text-white';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
 
         function debugSelection() {
             document.getElementById('debug-raw').textContent = lastSelectedRaw;
@@ -662,12 +709,28 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         }
 
         function saveWatermarkSettings() {
-            watermarkSettings = getWatermarkSettingsFromForm();
+            watermarkSettings = {
+                enabled: document.getElementById('watermark-enabled').checked,
+                text: document.getElementById('watermark-text').value || '内部资料',
+                angle: parseInt(document.getElementById('watermark-angle').value),
+                opacity: parseInt(document.getElementById('watermark-opacity').value),
+                font: document.getElementById('watermark-font').value,
+                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
+                color: document.getElementById('watermark-color').value
+            };
             closeWatermarkModal();
         }
 
         function previewWatermark() {
-            const tempSettings = { ...getWatermarkSettingsFromForm(), enabled: true };
+            const tempSettings = {
+                enabled: true,
+                text: document.getElementById('watermark-text').value || '内部资料',
+                angle: parseInt(document.getElementById('watermark-angle').value),
+                opacity: parseInt(document.getElementById('watermark-opacity').value),
+                font: document.getElementById('watermark-font').value,
+                fontSize: parseInt(document.getElementById('watermark-fontsize').value),
+                color: document.getElementById('watermark-color').value
+            };
             
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
@@ -735,6 +798,21 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                     z-index: 9999;
                     overflow: hidden;
                 }
+                .watermark-layer::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background-image: repeating-linear-gradient(
+                        ${angle}deg,
+                        transparent,
+                        transparent 80px,
+                        rgba(0, 0, 0, 0) 80px,
+                        rgba(0, 0, 0, 0) 80px
+                    );
+                }
                 .watermark-layer::after {
                     content: '';
                     position: absolute;
@@ -769,9 +847,25 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             const palette = document.getElementById('color-palette');
             const colors = [
                 '#000000', '#333333', '#666666', '#999999', '#cccccc', '#ffffff',
-                '#ff0000', '#ff6600', '#ffcc00', '#00ff00', '#00ffff', '#0066ff',
-                '#0000ff', '#6600ff', '#9900ff', '#ff00ff', '#ff3399', '#ff6666',
-                '#800000', '#006400', '#000080', '#4b0082', '#2f4f4f', '#8b4513'
+                '#ff0000', '#ff3333', '#ff6666', '#ff9999', '#ffcccc', '#990000',
+                '#cc0000', '#cc3333', '#cc6666', '#cc9999', '#ffcc00', '#ff9900',
+                '#ff6600', '#ff3300', '#cc3300', '#993300', '#663300', '#333300',
+                '#00ff00', '#33ff33', '#66ff66', '#99ff99', '#ccffcc', '#009900',
+                '#00cc00', '#00cc33', '#00cc66', '#00cc99', '#00ff99', '#00ff66',
+                '#0000ff', '#3333ff', '#6666ff', '#9999ff', '#ccccff', '#000099',
+                '#0000cc', '#3300cc', '#6600cc', '#9900cc', '#cc00ff', '#cc00cc',
+                '#ffff00', '#ffff33', '#ffff66', '#ffff99', '#ffffcc', '#999900',
+                '#cccc00', '#cccc33', '#cccc66', '#cccc99', '#99cc00', '#66cc00',
+                '#00ffff', '#33ffff', '#66ffff', '#99ffff', '#ccffff', '#009999',
+                '#00cccc', '#00cccc', '#33cccc', '#66cccc', '#99cccc', '#00ccff',
+                '#ff00ff', '#ff33ff', '#ff66ff', '#ff99ff', '#ffccff', '#990099',
+                '#cc00cc', '#cc33cc', '#cc66cc', '#cc99cc', '#cc66ff', '#cc33ff',
+                '#800000', '#8b0000', '#a52a2a', '#b22222', '#dc143c', '#ff0000',
+                '#006400', '#008000', '#228b22', '#2e8b57', '#32cd32', '#00ff00',
+                '#000080', '#00008b', '#0000cd', '#0000ff', '#4169e1', '#6495ed',
+                '#8b4513', '#a0522d', '#cd853f', '#deb887', '#f4a460', '#ffdab9',
+                '#4b0082', '#6a0dad', '#7b68ee', '#8470ff', '#9370db', '#ba55d3',
+                '#2f4f4f', '#696969', '#708090', '#778899', '#a9a9a9', '#c0c0c0'
             ];
             
             colors.forEach(color => {
@@ -804,25 +898,14 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 
                 const style = document.createElement('style');
                 style.textContent = `
-                    .export-wrapper { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.8; color: #333; }
-                    .export-wrapper h1 { font-size: 2em; font-weight: 700; margin: 1.2em 0 0.6em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
-                    .export-wrapper h2 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em; }
-                    .export-wrapper h3 { font-size: 1.25em; font-weight: 600; margin: 0.8em 0 0.4em; }
-                    .export-wrapper h4 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; }
-                    .export-wrapper h5, .export-wrapper h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em; }
-                    .export-wrapper p { margin: 0.6em 0; line-height: 1.8; }
-                    .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0.6em 0 !important; }
-                    .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0.6em 0 !important; }
-                    .export-wrapper li { display: list-item !important; margin-bottom: 0.25em !important; line-height: 1.8; }
+                    .export-wrapper { font-family: sans-serif; }
+                    .export-wrapper ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
+                    .export-wrapper ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin-bottom: 1rem !important; }
+                    .export-wrapper li { display: list-item !important; margin-bottom: 0.5rem !important; }
                     .export-wrapper ul > li::before, .export-wrapper ol > li::before { display: none !important; }
-                    .export-wrapper blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 0.8em 0; color: #666; }
-                    .export-wrapper table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
-                    .export-wrapper th, .export-wrapper td { border: 1px solid #e5e7eb; padding: 8px 12px; }
-                    .export-wrapper th { background: #f9fafb; }
-                    .export-wrapper hr { border: 0; border-top: 2px solid #eaeaea; margin: 1.5em 0; }
                 `;
                 container.appendChild(style);
-                container.className = 'export-wrapper';
+                container.className = 'export-wrapper prose prose-base max-w-none leading-relaxed';
                 
                 document.body.appendChild(container);
 
@@ -844,9 +927,8 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                     const r = parseInt(color.slice(1, 3), 16);
                     const g = parseInt(color.slice(3, 5), 16);
                     const b = parseInt(color.slice(5, 7), 16);
-                    const fontFamily = watermarkSettings.font.split(',')[0].trim();
                     
-                    ctx.font = `${fontSize}px "${fontFamily}", serif`;
+                    ctx.font = `${fontSize}px ${watermarkSettings.font}`;
                     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -903,9 +985,64 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 } catch (err) { console.error(err); }
             });
 
-            processListItems(tempDiv);
+            tempDiv.querySelectorAll('li').forEach(li => {
+                const innerPs = li.querySelectorAll('p');
+                if (innerPs.length > 0) {
+                    innerPs.forEach(p => {
+                        const fragment = document.createDocumentFragment();
+                        while(p.firstChild) fragment.appendChild(p.firstChild);
+                        p.parentNode.replaceChild(fragment, p);
+                    });
+                }
+                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
+            });
 
             const content = tempDiv.innerHTML;
+            
+            let watermarkStyle = '';
+            let watermarkDiv = '';
+            
+            if (watermarkSettings.enabled && watermarkSettings.text) {
+                const color = watermarkSettings.color || '#000000';
+                const r = parseInt(color.slice(1, 3), 16);
+                const g = parseInt(color.slice(3, 5), 16);
+                const b = parseInt(color.slice(5, 7), 16);
+                const opacity = watermarkSettings.opacity / 100;
+                const angle = -watermarkSettings.angle;
+                
+                watermarkStyle = `
+                    @page {
+                        mso-watermark: "watermark";
+                    }
+                    .watermark-container {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        pointer-events: none;
+                        z-index: -1;
+                    }
+                    .watermark-text {
+                        position: absolute;
+                        font-family: ${watermarkSettings.font};
+                        font-size: ${watermarkSettings.fontSize}pt;
+                        color: rgba(${r}, ${g}, ${b}, ${opacity});
+                        transform: rotate(${angle}deg);
+                        white-space: nowrap;
+                    }
+                `;
+                
+                const watermarkRows = [];
+                for (let row = 0; row < 20; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const top = row * 80;
+                        const left = col * 120;
+                        watermarkRows.push(`<span class="watermark-text" style="top:${top}pt;left:${left}pt;">${watermarkSettings.text}</span>`);
+                    }
+                }
+                watermarkDiv = `<div class="watermark-container">${watermarkRows.join('')}</div>`;
+            }
             
             const converted = htmlDocx.asBlob(`
                 <!DOCTYPE html>
@@ -924,9 +1061,10 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                         h2 { font-size: 18pt; margin-top: 16pt; margin-bottom: 10pt; font-weight: bold; }
                         h3 { font-size: 14pt; margin-top: 14pt; margin-bottom: 8pt; font-weight: bold; }
                         p { margin-bottom: 8pt; margin-top: 0; }
+                        ${watermarkStyle}
                     </style>
                 </head>
-                <body>${content}<\/body>
+                <body>${watermarkDiv}${content}<\/body>
                 <\/html>
             `);
 
@@ -957,7 +1095,18 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
                 }
             });
             
-            processListItems(tempDiv);
+            // 处理列表
+            tempDiv.querySelectorAll('li').forEach(li => {
+                const innerPs = li.querySelectorAll('p');
+                if (innerPs.length > 0) {
+                    innerPs.forEach(p => {
+                        const fragment = document.createDocumentFragment();
+                        while(p.firstChild) fragment.appendChild(p.firstChild);
+                        p.parentNode.replaceChild(fragment, p);
+                    });
+                }
+                li.innerHTML = li.innerHTML.trim().replace(/\n/g, ' ');
+            });
             
             const content = tempDiv.innerHTML;
             const watermarkCSS = generateWatermarkCSS(watermarkSettings);
