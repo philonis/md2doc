@@ -134,14 +134,6 @@
             overflow-y: auto;
         }
 
-        /* 预览区标题样式 */
-        #preview h1 { font-size: 2.5em; font-weight: 700; color: #1e3a8a; margin: 1.5em 0 0.75em; border-bottom: 3px solid #3b82f6; padding-bottom: 0.5em; }
-        #preview h2 { font-size: 2em; font-weight: 600; color: #1e40af; margin: 1.2em 0 0.6em; border-bottom: 2px solid #60a5fa; padding-bottom: 0.4em; }
-        #preview h3 { font-size: 1.5em; font-weight: 600; color: #1d4ed8; margin: 1em 0 0.5em; }
-        #preview h4 { font-size: 1.25em; font-weight: 600; color: #2563eb; margin: 0.8em 0 0.4em; }
-        #preview h5 { font-size: 1.1em; font-weight: 600; color: #3b82f6; margin: 0.6em 0 0.3em; }
-        #preview h6 { font-size: 1em; font-weight: 600; color: #60a5fa; margin: 0.5em 0 0.25em; }
-
         /* 预览区列表样式增强 */
         #preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
         #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
@@ -153,42 +145,7 @@
         /* 预览区表格样式 */
         #preview table { border-collapse: collapse; width: 100%; margin: 1em 0; overflow-x: auto; display: block; }
         #preview th, #preview td { border: 1px solid #e5e7eb; padding: 8px 12px; min-width: 80px; }
-        #preview th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; }
-        #preview td { background: #ffffff; }
-        #preview tr:nth-child(even) td { background: #f9fafb; }
-
-        /* 预览区代码块样式 - 优化制表符流程图显示 */
-        #preview pre {
-            background: linear-gradient(135deg, #f6f8fa 0%, #f0f4f8 100%);
-            border: 1px solid #e1e4e8;
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-        }
-        #preview code {
-            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
-            font-size: 0.9em;
-            line-height: 1.6;
-            color: #24292e;
-            white-space: pre;
-            tab-size: 4;
-            -moz-tab-size: 4;
-            -o-tab-size: 4;
-        }
-        #preview pre code {
-            background: transparent;
-            padding: 0;
-            border: none;
-        }
-        #preview p code {
-            background: #f6f8fa;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            font-size: 0.85em;
-            color: #d73a49;
-        }
+        #preview th { background: #f9fafb; }
 
         /* 右键菜单样式 */
         #context-menu {
@@ -517,6 +474,11 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         function preprocessMarkdown(text) {
             let processed = text.replace(/　/g, ' ');
             
+            // 解决中文/标点与加粗符号相邻导致无法解析的问题
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '$1 **$2** $3');
+            processed = processed.replace(/([^\s\n])\*\*([^\s\n*].*?[^\s\n*])\*\*/g, '$1 **$2**');
+            processed = processed.replace(/\*\*([^\s\n*].*?[^\s\n*])\*\*([^\s\n])/g, '**$2** $3');
+
             processed = processed.replace(/^(#+.*)\n([^-*1-9\s])/gm, '$1\n\n$2');
             processed = processed.replace(/\n([-*_]){3,}\n/g, '\n\n$1$1$1\n\n');
             processed = processed.replace(/([^\n])\n([-]{3,})(\s|$)/g, '$1\n\n$2$3');
@@ -619,87 +581,8 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
         
         editor.addEventListener('touchstart', (e) => handleTouchStart(e, true), {passive: true});
         editor.addEventListener('touchend', handleTouchEnd);
-        
         preview.addEventListener('touchstart', (e) => handleTouchStart(e, false), {passive: true});
         preview.addEventListener('touchend', handleTouchEnd);
-
-        // 文件拖放功能
-        const editorContainer = editor.parentElement;
-        
-        // 拖放区域样式
-        const dragOverStyle = 'border-2 border-dashed border-blue-500 bg-blue-50';
-        
-        // 阻止默认拖放行为
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            editorContainer.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-        
-        // 拖入时显示样式
-        ['dragenter', 'dragover'].forEach(eventName => {
-            editorContainer.addEventListener(eventName, () => {
-                editorContainer.classList.add(dragOverStyle);
-                if (!document.getElementById('drop-hint')) {
-                    const hint = document.createElement('div');
-                    hint.id = 'drop-hint';
-                    hint.className = 'absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-90 text-white text-xl font-bold pointer-events-none z-10';
-                    hint.textContent = '📄 释放以导入 Markdown 文件';
-                    editorContainer.style.position = 'relative';
-                    editorContainer.appendChild(hint);
-                }
-            }, false);
-        });
-        
-        // 拖出时移除样式
-        ['dragleave', 'drop'].forEach(eventName => {
-            editorContainer.addEventListener(eventName, () => {
-                editorContainer.classList.remove(dragOverStyle);
-                const hint = document.getElementById('drop-hint');
-                if (hint) hint.remove();
-            }, false);
-        });
-        
-        // 处理文件放下
-        editorContainer.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                if (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        editor.value = event.target.result;
-                        updatePreview();
-                        showNotification('✅ 已导入: ' + file.name, 'success');
-                    };
-                    reader.onerror = () => {
-                        showNotification('❌ 文件读取失败', 'error');
-                    };
-                    reader.readAsText(file);
-                } else {
-                    showNotification('❌ 请拖入 .md 或 .markdown 文件', 'error');
-                }
-            }
-        });
-        
-        // 通知提示函数
-        function showNotification(message, type = 'info') {
-            const existing = document.getElementById('drop-notification');
-            if (existing) existing.remove();
-            
-            const notification = document.createElement('div');
-            notification.id = 'drop-notification';
-            notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 font-medium ' + 
-                (type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500') + ' text-white';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
 
         function debugSelection() {
             document.getElementById('debug-raw').textContent = lastSelectedRaw;
