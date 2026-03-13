@@ -72,6 +72,36 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // 配置 marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: true,
+            mangle: false
+        });
+        
+        // 初始化 Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#764ba2',
+                lineColor: '#667eea',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#f0f4f8'
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis',
+                rankSpacing: 80,
+                nodeSpacing: 50
+            }
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
     <!-- 引入 html2canvas 库 -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -153,7 +183,7 @@
         /* 预览区表格样式 */
         #preview table { border-collapse: collapse; width: 100%; margin: 1em 0; overflow-x: auto; display: block; }
         #preview th, #preview td { border: 1px solid #e5e7eb; padding: 8px 12px; min-width: 80px; }
-        #preview th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; }
+        #preview th { background: #dcfce7; color: #1f2937; font-weight: 600; }
         #preview td { background: #ffffff; }
         #preview tr:nth-child(even) td { background: #f9fafb; }
 
@@ -172,15 +202,17 @@
             font-size: 0.9em;
             line-height: 1.6;
             color: #24292e;
-            white-space: pre;
-            tab-size: 4;
-            -moz-tab-size: 4;
-            -o-tab-size: 4;
         }
         #preview pre code {
             background: transparent;
             padding: 0;
             border: none;
+            white-space: pre;
+            tab-size: 4;
+            -moz-tab-size: 4;
+            -o-tab-size: 4;
+            -webkit-tab-size: 4;
+            display: block;
         }
         #preview p code {
             background: #f6f8fa;
@@ -188,6 +220,22 @@
             border-radius: 3px;
             font-size: 0.85em;
             color: #d73a49;
+            white-space: normal;
+        }
+
+        /* Mermaid 图表样式 */
+        .mermaid-diagram {
+            background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+        .mermaid-diagram svg {
+            max-width: 100%;
+            height: auto;
         }
 
         /* 右键菜单样式 */
@@ -523,13 +571,37 @@ $$ f(x | \\mu, \\sigma^2) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x-\\mu
             return processed;
         }
 
-        function updatePreview() {
+        async function updatePreview() {
             const val = editor.value;
             markdownBlocks = val.split(/\n\n+/);
             const cleanMarkdown = preprocessMarkdown(val);
             const html = marked.parse(cleanMarkdown);
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = renderMath(html);
+            
+            // 处理 Mermaid 图表
+            const mermaidCodes = tempDiv.querySelectorAll('code.language-mermaid');
+            for (let i = 0; i < mermaidCodes.length; i++) {
+                const code = mermaidCodes[i];
+                const pre = code.parentElement;
+                const mermaidCode = code.textContent;
+                
+                try {
+                    const id = 'mermaid-' + Date.now() + '-' + i;
+                    const { svg } = await mermaid.render(id, mermaidCode);
+                    const div = document.createElement('div');
+                    div.className = 'mermaid-diagram';
+                    div.innerHTML = svg;
+                    pre.parentElement.replaceChild(div, pre);
+                } catch (error) {
+                    console.error('Mermaid 渲染错误:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'mermaid-error';
+                    errorDiv.style.cssText = 'background: #fee; border: 1px solid #f00; padding: 1rem; border-radius: 4px; color: #c00;';
+                    errorDiv.textContent = 'Mermaid 图表语法错误: ' + error.message;
+                    pre.parentElement.replaceChild(errorDiv, pre);
+                }
+            }
             
             Array.from(tempDiv.children).forEach((child, index) => {
                 child.setAttribute('data-index', index);
