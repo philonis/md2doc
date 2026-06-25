@@ -1,6 +1,8 @@
 # Markdown 转换专家 Pro
 
-一款专业的 Markdown 转换工具，支持实时预览、导出 PDF/Docx/长图，完美适配移动端。
+一款可离线使用的单页 HTML Markdown 转换工具，支持实时预览、导出 PDF/Docx/长图，适配移动端。
+
+项目当前聚焦浏览器端 `index.html`，不依赖服务端，也不需要运行构建流程。第三方运行时依赖已放在本地 `vendor/` 目录，打开页面时不会请求 CDN。
 
 ## ✨ 功能特性
 
@@ -43,30 +45,28 @@ $$ f(x | \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\s
 
 ## 🚀 快速开始
 
-### 在线使用
-直接打开 `index.html` 文件即可使用。
+### 离线使用
+直接打开 `index.html` 文件即可使用。请保持 `vendor/` 目录与 `index.html` 在同一目录下。
 
-### 本地运行
+### 本地预览（可选）
 
 ```bash
-# 方式一：Python 简易服务器
 python3 -m http.server 8080
-
-# 方式二：Node.js 服务器
-npx serve .
 ```
 
-然后访问 http://localhost:8080
+然后访问 http://localhost:8080。这个步骤只是为了本地预览，工具本身不需要服务端。
 
 ## 📦 技术栈
 
 | 库 | 用途 |
 |---|------|
-| [Tailwind CSS](https://tailwindcss.com/) | 样式框架 |
-| [Marked.js](https://marked.js.org/) | Markdown 解析 |
-| [KaTeX](https://katex.org/) | 数学公式渲染 |
-| [html2canvas](https://html2canvas.hertzen.com/) | 生成长图 |
-| [html-docx-js](https://github.com/evidenceprime/html-docx-js) | 导出 Docx |
+| Tailwind CSS | 样式框架（本地 vendor） |
+| Marked.js | Markdown 解析（本地 vendor） |
+| KaTeX | 数学公式渲染（本地 vendor） |
+| Mermaid | 图表渲染（本地 vendor） |
+| highlight.js | 代码高亮（本地 vendor） |
+| html2canvas | 生成长图（本地 vendor） |
+| html-docx-js | 导出 Docx（本地 vendor） |
 
 ## 📖 支持的 Markdown 语法
 
