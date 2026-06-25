@@ -67,6 +67,7 @@ python3 -m http.server 8080
 | highlight.js | 代码高亮（本地 vendor） |
 | html2canvas | 生成长图（本地 vendor） |
 | html-docx-js | 导出 Docx（本地 vendor） |
+| mathml2omml | Word 公式结构转换（本地 vendor） |
 
 ## 📖 支持的 Markdown 语法
 

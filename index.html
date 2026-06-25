@@ -126,6 +126,7 @@
         });
     </script>
     <script src="./vendor/html-docx/html-docx.min.js"></script>
+    <script src="./vendor/mathml2omml/index.global.js"></script>
     <!-- 引入 html2canvas 库 -->
     <script src="./vendor/html2canvas/html2canvas.min.js"></script>
 
@@ -1131,16 +1132,11 @@ console.log('支持格式:', features.join(', '));
         }
 
         async function getMathmlToOmmlConverter() {
-            return null;
-        }
-
-        function escapeXmlText(text) {
-            return String(text)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&apos;');
+            const mml2omml = window.mathml2omml && window.mathml2omml.mml2omml;
+            if (typeof mml2omml !== 'function') {
+                throw new Error('本地 mathml2omml 模块未加载');
+            }
+            return mml2omml;
         }
 
         function wrapOmmlForDisplay(omml, isDisplay) {
@@ -1153,20 +1149,15 @@ console.log('支持格式:', features.join(', '));
             try {
                 const mathml = katex.renderToString(latex, { displayMode: isDisplay, throwOnError: false, output: 'mathml' });
                 const mml2omml = await getMathmlToOmmlConverter();
-                if (mml2omml) {
-                    const omml = mml2omml(mathml);
-                    if (omml && /<m:oMath/.test(omml)) {
-                        return wrapOmmlForDisplay(omml, isDisplay);
-                    }
+                const omml = mml2omml(mathml);
+                if (omml && /<m:oMath/.test(omml)) {
+                    return wrapOmmlForDisplay(omml, isDisplay);
                 }
+                throw new Error('MathML 未转换为有效 OMML');
             } catch (err) {
                 console.error('公式转换为 OMML 失败:', err);
+                throw err;
             }
-
-            // Fallback: keep formula in an editable Word equation container as linear input.
-            const linear = escapeXmlText(latex);
-            const omml = `<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:r><m:t>${linear}</m:t></m:r></m:oMath>`;
-            return wrapOmmlForDisplay(omml, isDisplay);
         }
 
         async function exportLongImage() {
@@ -1267,7 +1258,9 @@ console.log('支持格式:', features.join(', '));
                     ommlTokens.push({ token, omml });
                     el.replaceWith(document.createTextNode(token));
                 } catch (err) {
-                    console.error(err);
+                    console.error('DOCX 公式导出失败:', err);
+                    alert(`DOCX 公式导出失败，未生成文件。\n\n公式：${latex}`);
+                    return;
                 }
             }
 
